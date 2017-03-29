@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Settings>
+    <ConfigObjectCollection>
+        <ConfigObject>
+
+            <!-- Generic Settings (used by most ETLs) -->
+            <Name>TRMM ETL</Name> <!-- Name for this ETL script -->
+            <ScratchFolder>Z:\ETLscratch\TRMM</ScratchFolder> <!--  D:\temp\ETLscratch\TRMM   Location of Temporary filesystem workspace used by the script. -->
+            <MaxFilesPerSession>99999</MaxFilesPerSession> <!-- For Debugging, set this to a very large number like 99999 for production runs.  -->
+            <RegEx_DateFilterString>\d{4}[01]\d[0-3]\d[0-2]\d</RegEx_DateFilterString> <!-- When a date needs to be parsed from a string (like a filename) this expression is used as the processor in the generic get date from string function     \d{4}-[01]\d-[0-3]\dT[0-2]\d   \d{4}-[01]\d-[0-3]\dT[0-2]\d  -->
+            <Python_DateFormat>%Y%m%d%H</Python_DateFormat> <!-- This is the expression python uses to create a date time from a string.  Also used in the generic get date from string function  %Y-%m-%dT%H -->
+            <Query_DateFormat>%Y-%m-%d %H:00:00</Query_DateFormat>  <!-- This is used in deleting rasters from the geodatabase -->
+
+            <!-- For GeoDB config -->
+            <!-- <GeoDB_Location>D:\SERVIR\Data\Global</GeoDB_Location> --> <!-- Path to folder containing GeoDB or SDE, no ending backslash. -->
+            <!-- <GeoDB_FileName>TRMM.gdb</GeoDB_FileName> -->  <!-- TRMM.gdb -->
+
+            <!-- For SDE config -->
+            <GeoDB_Location>D:\SERVIR\ConnectionFiles\PostgreSQL</GeoDB_Location> <!-- Path to folder containing GeoDB or SDE, no ending backslash. -->
+            <GeoDB_FileName>servir@servir_owner.sde</GeoDB_FileName>  <!-- TRMM.gdb -->
+
+            <Raster_Final_Output_Location>D:\SERVIR\Data\Global\TRMM</Raster_Final_Output_Location>
+            <Download_File_Extension>tif.gz</Download_File_Extension>
+
+            <!-- Logging Options -->
+            <DetailedLogging>0</DetailedLogging>    <!-- Detailed logging enabled?  0 means no/False, 1 means yes/True -->
+            <Logger_Output_Location>D:\Logs\ETL_Logs\TRMM</Logger_Output_Location>    <!-- Output location for log files -->
+            <Logger_Prefix_Variable>TRMM</Logger_Prefix_Variable> <!-- Text that is prepended to the logfile name -->
+            <Logger_Num_Of_Days_To_Keep_Log>30</Logger_Num_Of_Days_To_Keep_Log> <!-- How many days to keep the log file. -->
+
+            <!-- FTP Config -->
+            <FTP_Host>trmmopen.gsfc.nasa.gov</FTP_Host> <!-- Host Address to FTP Server -->
+            <FTP_User>anonymous</FTP_User> <!-- FTP Username -->
+            <FTP_Pass>anonymous</FTP_Pass> <!-- FTP Password -->
+            <FTP_SubFolderPath>pub/merged/mergeIRMicro/</FTP_SubFolderPath> <!-- Path on the FTP server to the data folder. -->
+
+            <!-- Amazon S3 Config -->
+            <!-- If the machine this script is running on is part of the same amazon account as the s3 to access, Set this option to 1.  If the s3 connection fails, set this to 0 and fill out the credentials in the settings below. -->
+            <s3_UseLocal_IAM_Role>1</s3_UseLocal_IAM_Role>  <!-- Boolean (0/1) parameter for telling the script to use S3 IAM roles for access instead of using credentials.  This works if the script resides on a server which belongs to the same amazon account as the amazon s3 account -->
+            <s3_BucketName>bucket.servirglobal.net</s3_BucketName>  <!-- S3 Bucket Name for Connecting to an S3 Bucket -->  <!-- bucket.stage.servirglobal.net -->
+            <s3_BucketRootPath>https://bucket.servirglobal.net.s3.amazonaws.com/</s3_BucketRootPath> <!-- S3 Root bucket path, used for building URLs -->  <!-- https://bucket.stage.servirglobal.net.s3.amazonaws.com/ -->
+            <s3_UserName>YOUR_USERNAME</s3_UserName> <!--  S3 Bucket Username, for authenticating through boto lib -->
+            <s3_AccessKeyID>YOUR_ACCESS_KEY_ID</s3_AccessKeyID>  <!--  S3 Access Key ID, for authenticating through boto lib -->
+            <s3_SecretAccessKey>YOUR_ACCESS_KEY</s3_SecretAccessKey> <!--  S3 Secret Access Key, for authenticating through boto lib -->
+            <s3_PathTo_TRMM_Files>/global/data/eodata/trmm/</s3_PathTo_TRMM_Files>
+
+            <s3_PathTo_Output_Thumb_Files>/iserv/</s3_PathTo_Output_Thumb_Files> <!-- As an example, this is used during ISERV ETL as the location on the bucket to output thumb files.  The final outpath is, bucketAddress.com//iserv/ (with 2 slashes) -->
+
+            <!--
+                s3 Placholders (don't put credentials on the test or production server..)
+                <s3_UserName>YOUR_S3_USERNAME</s3_UserName>
+                <s3_AccessKeyID>YOUR_S3_ACCESS_KEY</s3_AccessKeyID>
+                <s3_SecretAccessKey>YOUR_S3_SECRETACCESS_KEY</s3_SecretAccessKey>
+
+                We have 2 s3 buckets.
+                Production:
+                    <s3_BucketName>bucket.servirglobal.net</s3_BucketName>
+                    <s3_BucketRootPath>https://bucket.servirglobal.net.s3.amazonaws.com/</s3_BucketRootPath>
+                Staging:
+                    <s3_BucketName>bucket.stage.servirglobal.net</s3_BucketName>
+                    <s3_BucketRootPath>https://bucket.stage.servirglobal.net.s3.amazonaws.com/</s3_BucketRootPath>
+            -->
+
+            <!-- Raster Business Logic 'variable dictionary' Settings -->
+            <!--
+                NOTE:
+                The elements called, "VariableDictionaryList", "ListItem" and "service_dict_list" are in a structure that strictly bound to the functions that process it.
+                Making changes to those element's positions in the heirarchy will most likely break the function that processes the settings.
+                Changes to the other items' contents may affect business logic processing.
+            -->
+            <VariableDictionaryList>
+
+                <ListItem>
+                    <variable_name>TRMM</variable_name>     <!-- CREST_NRT_Runoff -->
+                    <file_prefix>3B42RT.</file_prefix>    <!-- GOVar_R_ -->  <!-- TRMM-3B42RT-V7-Rain_ -->
+                    <file_suffix>.7.03hr.tif</file_suffix> <!-- Z.tif -->
+                    <data_type>FLOAT</data_type>
+                    <mosaic_name>TRMM</mosaic_name>  <!-- CREST_NRT_Runoff -->
+                    <primary_date_field>timestamp</primary_date_field>
+                    <service_dict_list>
+                        <folder_name>SomeFolder</folder_name><!-- Africa -->
+                        <service_name>TRMM_Service</service_name><!-- CREST_NRT_Runoff_esri -->
+                        <service_type>MapServer</service_type><!-- ImageServer -->
+                    </service_dict_list>
+                    <!-- To make a list of these items, just make another "service_dict_list" entry here -->
+                </ListItem>
+                <!-- To make a list of these items, just make another "ListItem" entry here -->
+                <!--
+                <ListItem>
+                    <variable_name>CREST_Quantile_SoilMoisture</variable_name>
+                    <file_prefix>GOVar_SM_</file_prefix>
+                    <file_suffix>_Q.TIF</file_suffix>
+                    <data_type>FLOAT</data_type>
+                    <mosaic_name>CREST_Quantile_SoilMoisture</mosaic_name>
+                    <primary_date_field>timestamp</primary_date_field>
+                    <service_dict_list>
+                        <folder_name>Africa</folder_name>
+                        <service_name>CREST_Quantile_SoilMoisture_esri</service_name>
+                        <service_type>ImageServer</service_type>
+                    </service_dict_list>
+                </ListItem>
+                -->
+            </VariableDictionaryList>
+
+
+            <!-- Specialized Settings For TRMM ETL -->
+
+            <TRMM_ColorMapFile_3_Hour>D:\SERVIR\Scripts\TRMM\Templates\trmm_3hour.clr</TRMM_ColorMapFile_3_Hour>
+            <TRMM_SpatialProjection>GEOGCS['GCS_WGS_1984',DATUM['D_WGS_1984',SPHEROID['WGS_1984',6378137.0,298.257223563]],PRIMEM['Greenwich',0.0],UNIT['Degree',0.0174532925199433]];-400 -400 1000000000;-100000 10000;-100000 10000;8.98315284119521E-09;0.001;0.001;IsHighPrecision</TRMM_SpatialProjection>
+            <TRMM_RasterTransform_CoordSystem>WGS 1984</TRMM_RasterTransform_CoordSystem>
+            <TRMM_RasterArchiveDays>90 days</TRMM_RasterArchiveDays>
+            <TRMM_Is_Create_New_RasterCatalog>0</TRMM_Is_Create_New_RasterCatalog> <!-- 0 is false, 1 is true -->
+            <trmm1Day_RasterCatalogName>TRMM1Day</trmm1Day_RasterCatalogName>
+            <trmm7Day_RasterCatalogName>TRMM7Day</trmm7Day_RasterCatalogName>
+            <trmm30Day_RasterCatalogName>TRMM30Day</trmm30Day_RasterCatalogName>
+            <trmm1Day_ColorMapLocation>D:\SERVIR\Scripts\TRMM\Templates\trmm_1day.clr</trmm1Day_ColorMapLocation>
+            <trmm7Day_ColorMapLocation>D:\SERVIR\Scripts\TRMM\Templates\trmm_7day.clr</trmm7Day_ColorMapLocation>
+            <trmm30Day_ColorMapLocation>D:\SERVIR\Scripts\TRMM\Templates\TRMM_30Day.clr</trmm30Day_ColorMapLocation>
+            <trmm3Hour_ColorMapLocation>D:\SERVIR\Scripts\TRMM\Templates\colormap\TRMM_3hrs.clr</trmm3Hour_ColorMapLocation>
+            <!--
+            <TRMM_LoadOption_attr_name>timestamp</TRMM_LoadOption_attr_name>
+            <TRMM_LoadOption_attr_expression>timestamp</TRMM_LoadOption_attr_expression>
+            -->
+
+
+        </ConfigObject>
+
+    </ConfigObjectCollection>
+
+</Settings>
